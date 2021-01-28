@@ -8,6 +8,7 @@
        :color 설정한 색깔을 저장한다.'''
     return 출력하고싶은 내용
   TaeMe.run(self=TaeMe,Host=자신의 호스트 ip(str),Port=원하는 포트(int))
+  #기본ip는 127.0.0.1 기본 포트는 8080
   ```  
 이런식으로 사용하면된다.
   ```
