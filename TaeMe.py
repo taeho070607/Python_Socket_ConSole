@@ -23,13 +23,10 @@ class TaeMe():
             if i in Taeget:
                 return x
     def run(self,color: str="",ConSoleTime: float=0.125,ConSolePost: str="/",ConSoleValue: str="=",Host: str="127.0.0.1",Port: int=8080,Error: str=None):
-        # 접속한 클라이언트마다 새로운 쓰레드가 생성되어 통신을 하게 됩니다.
         def threaded(client_socket, addr,color,ConSoleTime,ConSolePost,ConSoleValue,Error):
             self.System.output('Connected by :', addr[0], ':', addr[1])
-            # 클라이언트가 접속을 끊을 때 까지 반복합니다.
             while True:
                 try:
-                    # 데이터가 수신되면 클라이언트에 다시 전송합니다.(에코)
                     data = client_socket.recv(1024)
                     if not data:
                         break
@@ -105,57 +102,34 @@ class TaeMe():
                                 "CLIENT_HOST:" + str(addr[0]) + " :: CONTENT:" + self.a + " :: " + "PORT:" + str(Port))
                             print(Error)
                     sleep(ConSoleTime)
-                    # 받은 문자열을 다시 클라이언트로 전송해줍니다.(에코)
                 except ConnectionResetError as e:
-
                     self.System.output('Disconnected by ' + addr[0], ':', addr[1])
                     break
-
             client_socket.close()
-
         HOST = Host
         PORT = Port
-
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind((HOST, PORT))
         server_socket.listen()
-
         print('server start')
-
-        # 클라이언트가 접속하면 accept 함수에서 새로운 소켓을 리턴합니다.
-
-        # 새로운 쓰레드에서 해당 소켓을 사용하여 통신을 하게 됩니다.
         while True:
             print('wait')
-
             client_socket, addr = server_socket.accept()
             start_new_thread(threaded, (client_socket, addr,color,ConSoleTime,ConSolePost,ConSoleValue,Error))
-
         server_socket.close()
     def client_run(self,Host: str="127.0.0.1",Port: int=8080):
         HOST = Host
-        # 서버에서 지정해 놓은 포트 번호입니다.
         PORT = Port
-
-
-        # 소켓 객체를 생성합니다.
-        # 주소 체계(address family)로 IPv4, 소켓 타입으로 TCP 사용합니다.
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        # 지정한 HOST와 PORT를 사용하여 서버에 접속합니다.
         client_socket.connect((HOST, PORT))
         while True:
             a = input(">")
             if a == "exit":
                 break
-            # 메시지를 전송합니다.
             client_socket.sendall(a.encode())
-
-            # 메시지를 수신합니다.
             data = client_socket.recv(1024)
             print(data.decode())
-
         # 소켓을 닫습니다.
         client_socket.close()
 if __name__ == '__main__':
