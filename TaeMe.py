@@ -1,6 +1,7 @@
 from time import sleep
 import socket
 from _thread import *
+import winsound
 class TaeMe():
     class System:
         output = print
@@ -13,7 +14,18 @@ class TaeMe():
     name = []
     users=[]
     ban_users=[]
+    max_users=None
+    accumulate_users=[]
+    event=False
+    sound=True
+    sound_frequency_No_expect = 300
+    sound_duration_No_expect = 250
+    sound_frequency_expect = 200
+    sound_duration_expect = 250
+    sound_frequency_max = 767
+    sound_frequency_min = 37
     BanMessage: str = "You Are Banned On This Server"
+    FullMessage: str = "Server Is Fulled"
     a = None
     pink='\033[95m'
     black='\033[30m'
@@ -36,13 +48,28 @@ class TaeMe():
                 return value
             self.System.output('Connected by :', addr[0], ':', addr[1])
             ok2: int=0
-            for i in self.ban_users:
-                if i == addr[0]:
-                    ok2 += 1
-                    print(self.BanMessage)
+            if self.max_users is None:
+                for i in self.ban_users:
+                    if i == addr[0]:
+                        ok2 += 1
+                        print(self.BanMessage)
+                        return 0
+                if ok2 is not 1:
+                    self.users.append(addr[0])
+                    self.accumulate_users.append(addr[0])
+            else:
+                if len(self.users) > self.max_users:
+                    print(self.FullMessage)
                     return 0
-            if ok2 is not 1:
-                self.users.append(addr[0])
+                else:
+                    for i in self.ban_users:
+                        if i == addr[0]:
+                            ok2 += 1
+                            print(self.BanMessage)
+                            return 0
+                    if ok2 is not 1:
+                        self.users.append(addr[0])
+                        self.accumulate_users.append(addr[0])
             # 클라이언트가 접속을 끊을 때 까지 반복합니다.
             while True:
                 try:
@@ -64,6 +91,7 @@ class TaeMe():
                         except:
                             code = None
                         if len(self.a.split(ConSolePost)) > 1:
+                            self.event=True
                             for x, i in enumerate(self.a.split(ConSolePost)):
                                 if x is not 0:
                                     console = i.split(ConSoleValue)
@@ -85,10 +113,12 @@ class TaeMe():
                                         else:
                                             raise Exception()
                         elif code is not None and len(code.co_varnames) > 2:
+                            self.event = True
                             for i in code.co_varnames:
                                 if i == "admin":
                                     print(fun(admin=admin,content=self.a,color=color))
                         elif "ConSoleColor" in self.a:
+                            self.event = True
                             if str(self.a.split(ConSoleValue)[1]) == "pink":
                                 print("ConSoleColor -> pink")
                                 color = self.pink
@@ -105,18 +135,23 @@ class TaeMe():
                                 print("ConSoleColor -> yellow")
                                 color = self.yellow
                         elif "ConSoleTime" in self.a:
+                            self.event = True
                             ConSoleTime = float(self.a.split(ConSoleValue)[1])
                             print("ConSoleTime -> " + str(float(self.a.split(ConSoleValue)[1])))
                         elif "ConSolePost" in self.a:
+                            self.event = True
                             ConSolePost = str(self.a.split(ConSoleValue)[1])
                             print("ConSolePost -> " + str(self.a.split(ConSoleValue)[1]))
                         elif "ConSoleValue" in self.a:
+                            self.event = True
                             ConSoleValue = str(self.a.split(ConSoleValue)[1])
                             print("ConSoleValue -> " + str(self.a.split(ConSoleValue)[1]))
                         elif "ConSoleError" in self.a:
+                            self.event = True
                             Error = str(self.a.split(ConSoleValue)[1])
                             print("ConSoleError -> " + str(self.a.split(ConSoleValue)[1]))
                         elif "help" in self.a:
+                            self.event = True
                             send = []
                             content = ""
                             for x, i in self.name:
@@ -126,34 +161,52 @@ class TaeMe():
                                 content += i
                             print(content)
                         elif "ConSole" in self.a:
+                            self.event = True
                             print("ConSoleTime = " + str(ConSoleTime) + "\n" + "ConSoleValue = '" + str(
                                 ConSoleValue) + "'\n" + "ConSolePost = '" + str(
                                 ConSolePost) + "'\n" + "ConSoleError = '" + str(Error) + "'\n" + "ConSoleColor = " + str(
                                 color))
                         elif "ServerByUsers" in self.a:
+                            self.event = True
                             print(str(self.users))
                         elif "ServerByBanUsers" in self.a:
+                            self.event = True
                             print(str(self.ban_users))
+                        elif "ServerByAccumulate" in self.a:
+                            self.event=True
+                            print(str(self.accumulate_users))
                         elif "ServerByBanMessage" in self.a:
+                            self.event = True
                             self.BanMessage = str(self.a.split(ConSoleValue)[1])
                             print("ConSoleError -> " + str(self.a.split(ConSoleValue)[1]))
                         elif "ServerByStatus" in self.a:
-                            print("ServerByUsers(Online) = " + str(len(self.users))+"\n"+"ServerByBanUsers = "+str(len(self.ban_users))+"\n"+"ServerByBanMessage = "+str(self.BanMessage))
+                            self.event = True
+                            print("ServerByUsers(Online) = " + str(len(self.users))+"\n"+"ServerByBanUsers = "+str(len(self.ban_users))+"\n"+"ServerByAccumulateUsers = "+str(len(self.accumulate_users))+"\n"+"ServerByBanMessage = "+str(self.BanMessage))
                         else:
                             value = print(color + fun(content=self.a, color=color))
                             if value is None:
                                 print(" ")
+                        self.event=False
                         self.System.output(
-                            "CLIENT_HOST:" + str(addr[0]) + " :: CONTENT:" + self.a + " :: " + "PORT:" + str(Port))
+                            "CLIENT_HOST:" + str(addr[0]) + "|" + str(
+                                addr[1]) + " :: CONTENT:" + self.a + " :: " + "PORT:" + str(Port))
+                        if self.sound is True:
+                            winsound.Beep(frequency=self.sound_frequency_No_expect, duration=self.sound_duration_No_expect)
                     except:
                         if Error is None:
+                            self.event = False
                             self.System.output(
-                                "CLIENT_HOST:" + str(addr[0]) + " :: CONTENT:" + self.a + " :: " + "PORT:" + str(Port))
-                            print("Can't Found '" + self.a + "' Command")
+                                "CLIENT_HOST:" + str(addr[0]) + "|" + str(
+                                    addr[1]) + " :: CONTENT:" + self.a + " :: " + "PORT:" + str(Port))
+                            print(f"Can't Found '{self.a}' Command")
                         else:
+                            self.event = False
                             self.System.output(
-                                "CLIENT_HOST:" + str(addr[0]) + " :: CONTENT:" + self.a + " :: " + "PORT:" + str(Port))
+                                "CLIENT_HOST:" + str(addr[0]) + "|" + str(
+                                    addr[1]) + " :: CONTENT:" + self.a + " :: " + "PORT:" + str(Port))
                             print(Error)
+                        if self.sound is True:
+                            winsound.Beep(frequency=self.sound_frequency_expect,duration=self.sound_duration_expect)
                     sleep(ConSoleTime)
                     # 받은 문자열을 다시 클라이언트로 전송해줍니다.(에코)
                 except ConnectionResetError as e:
@@ -169,7 +222,7 @@ class TaeMe():
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind((HOST, PORT))
-        server_socket.listen()
+        server_socket.listen(1)
 
         print('server start')
 
@@ -187,8 +240,6 @@ class TaeMe():
         HOST = Host
         # 서버에서 지정해 놓은 포트 번호입니다.
         PORT = Port
-
-
         # 소켓 객체를 생성합니다.
         # 주소 체계(address family)로 IPv4, 소켓 타입으로 TCP 사용합니다.
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -208,10 +259,12 @@ class TaeMe():
 
         # 소켓을 닫습니다.
         client_socket.close()
+class hello(TaeMe):
+    None
 if __name__ == '__main__':
     ThisMain = TaeMe
     @ThisMain
-    def index(addr,content,color):
+    def index(admin,content,color):
         return "Hello, This funtion is main function. maker_email=taeho070607@naver.com, word!"
     print(ThisMain.name)
     ThisMain.run(self=ThisMain,Port=8000,ConSoleTime=0)
