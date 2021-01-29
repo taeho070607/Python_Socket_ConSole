@@ -40,28 +40,46 @@ class TaeMe():
         for i,x in self.name:
             if i in Taeget:
                 return x
-    def run(self,color: str="",ConSoleTime: float=0.125,ConSolePost: str="/",ConSoleValue: str="=",Host: str="127.0.0.1",Port: int=8080,Error: str=None):
+    def run(self,color: str="",ConSoleTime: float=0.125,ConSolePost: str="/",ConSoleValue: str="=",Host: str="127.0.0.1",Port: int=8080,Error: str=None,Server: str=None,Admin: bool=False):
         # 접속한 클라이언트마다 새로운 쓰레드가 생성되어 통신을 하게 됩니다.
-        def threaded(client_socket, addr,color,ConSoleTime,ConSolePost,ConSoleValue,Error):
+        def threaded(client_socket, addr,color,ConSoleTime,ConSolePost,ConSoleValue,Error,Server,Admin):
+            ADMIN=False
             def print(value):
                 client_socket.sendall(value.encode())
                 return value
             self.System.output('Connected by :', addr[0], ':', addr[1])
             ok2: int=0
-            if self.max_users is None:
-                for i in self.ban_users:
-                    if i == addr[0]:
-                        ok2 += 1
-                        print(self.BanMessage)
-                        return 0
-                if ok2 is not 1:
+            if Admin is False and Server is not None:
+                if addr[0] == Server:
+                    ADMIN=True
                     self.users.append(addr[0])
                     self.accumulate_users.append(addr[0])
-            else:
-                if len(self.users) > self.max_users:
-                    print(self.FullMessage)
-                    return 0
                 else:
+                    if self.max_users is None:
+                        for i in self.ban_users:
+                            if i == addr[0]:
+                                ok2 += 1
+                                print(self.BanMessage)
+                                return 0
+                        if ok2 is not 1:
+                            self.users.append(addr[0])
+                            self.accumulate_users.append(addr[0])
+                    else:
+                        if len(self.users) > self.max_users:
+                            print(self.FullMessage)
+                            return 0
+                        else:
+                            for i in self.ban_users:
+                                if i == addr[0]:
+                                    ok2 += 1
+                                    print(self.BanMessage)
+                                    return 0
+                            if ok2 is not 1:
+                                self.users.append(addr[0])
+                                self.accumulate_users.append(addr[0])
+            else:
+                ADMIN = True
+                if self.max_users is None:
                     for i in self.ban_users:
                         if i == addr[0]:
                             ok2 += 1
@@ -70,6 +88,19 @@ class TaeMe():
                     if ok2 is not 1:
                         self.users.append(addr[0])
                         self.accumulate_users.append(addr[0])
+                else:
+                    if len(self.users) > self.max_users:
+                        print(self.FullMessage)
+                        return 0
+                    else:
+                        for i in self.ban_users:
+                            if i == addr[0]:
+                                ok2 += 1
+                                print(self.BanMessage)
+                                return 0
+                        if ok2 is not 1:
+                            self.users.append(addr[0])
+                            self.accumulate_users.append(addr[0])
             # 클라이언트가 접속을 끊을 때 까지 반복합니다.
             while True:
                 try:
@@ -166,22 +197,27 @@ class TaeMe():
                                 ConSoleValue) + "'\n" + "ConSolePost = '" + str(
                                 ConSolePost) + "'\n" + "ConSoleError = '" + str(Error) + "'\n" + "ConSoleColor = " + str(
                                 color))
-                        elif "ServerByUsers" in self.a:
-                            self.event = True
-                            print(str(self.users))
-                        elif "ServerByBanUsers" in self.a:
-                            self.event = True
-                            print(str(self.ban_users))
-                        elif "ServerByAccumulate" in self.a:
-                            self.event=True
-                            print(str(self.accumulate_users))
-                        elif "ServerByBanMessage" in self.a:
-                            self.event = True
-                            self.BanMessage = str(self.a.split(ConSoleValue)[1])
-                            print("ConSoleError -> " + str(self.a.split(ConSoleValue)[1]))
-                        elif "ServerByStatus" in self.a:
-                            self.event = True
-                            print("ServerByUsers(Online) = " + str(len(self.users))+"\n"+"ServerByBanUsers = "+str(len(self.ban_users))+"\n"+"ServerByAccumulateUsers = "+str(len(self.accumulate_users))+"\n"+"ServerByBanMessage = "+str(self.BanMessage))
+                        elif ADMIN:
+                            if "ServerByUsers" in self.a:
+                                self.event = True
+                                print(str(self.users))
+                            elif "ServerByBanUsers" in self.a:
+                                self.event = True
+                                print(str(self.ban_users))
+                            elif "ServerByAccumulate" in self.a:
+                                self.event=True
+                                print(str(self.accumulate_users))
+                            elif "ServerByBanMessage" in self.a:
+                                self.event = True
+                                self.BanMessage = str(self.a.split(ConSoleValue)[1])
+                                print("ConSoleError -> " + str(self.a.split(ConSoleValue)[1]))
+                            elif "ServerByStatus" in self.a:
+                                self.event = True
+                                print("ServerByUsers(Online) = " + str(len(self.users))+"\n"+"ServerByBanUsers = "+str(len(self.ban_users))+"\n"+"ServerByAccumulateUsers = "+str(len(self.accumulate_users))+"\n"+"ServerByBanMessage = "+str(self.BanMessage)+"\n"+"ServerByFullUsersMessage = "+str(self.FullMessage))
+                            elif "ServerByFullUsersMessage" in self.a:
+                                self.event = True
+                                self.FullMessage = str(self.a.split(ConSoleValue)[1])
+                                print("ServerByFullUsersMessage -> " + str(self.a.split(ConSoleValue)[1]))
                         else:
                             value = print(color + fun(content=self.a, color=color))
                             if value is None:
@@ -233,7 +269,7 @@ class TaeMe():
             print('wait')
 
             client_socket, addr = server_socket.accept()
-            start_new_thread(threaded, (client_socket, addr,color,ConSoleTime,ConSolePost,ConSoleValue,Error))
+            start_new_thread(threaded, (client_socket, addr,color,ConSoleTime,ConSolePost,ConSoleValue,Error,Server,Admin))
 
         server_socket.close()
     def client_run(self,Host: str="127.0.0.1",Port: int=8080):
